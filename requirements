@@ -7,3 +7,4 @@ pdfplumber
 pandas
 requests
 python-dotenv
+google-cloud-core
