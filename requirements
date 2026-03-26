@@ -1,6 +1,5 @@
 streamlit
 google-genai==1.10.0
-google-generativeai
 Pillow
 numpy
 tensorflow-cpu
