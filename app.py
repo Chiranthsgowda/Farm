@@ -329,31 +329,10 @@ elif st.session_state.page == "🍃 Leaf Disease":
 
         language_option = st.selectbox("Select the language for Response:", ["English", "Kannada", "Hindi", "Telugu", "Tamil"])
 
-        if uploaded:
-            image = Image.open(uploaded)
+        API_KEY = os.getenv("GOOGLE_API_KEY")
+        client = genai.Client(api_key=API_KEY)
 
-            coll1, coll2 = st.columns([1, 1], gap="large")
-
-            with coll1:
-                st.image(image, caption="Uploaded image", use_container_width=True)
-
-            with coll2:
-                with st.spinner("Analysing …"):
-                    results = predict(image, model, class_names)
-
-                top = results[0]
-                confidence = top["confidence"]
-
-                # Colour-code confidence
-                if confidence >= 0.90:
-                    badge = "🟢"
-                elif confidence >= 0.70:
-                    badge = "🟡"
-                else:
-                    badge = "🔴"
-                API_KEY = os.getenv("GOOGLE_API_KEY")
-                client = genai.Client(api_key=API_KEY)
-                def get_disease_advice(client, plant_name, disease_name, language_option):
+        def get_disease_advice(client, plant_name, disease_name, language_option):
                     prompt = f"""
                         You are an expert plant pathologist and agronomist.
                         The user is growing '{top['plant']}' and it is affected by the disease '{top['disease']}'.
@@ -391,6 +370,31 @@ elif st.session_state.page == "🍃 Leaf Disease":
                         return advice_dict
                     except json.JSONDecodeError:
                         return {"error": "Failed to parse the response into JSON."}
+
+        if uploaded:
+            image = Image.open(uploaded)
+
+            coll1, coll2 = st.columns([1, 1], gap="large")
+
+            with coll1:
+                st.image(image, caption="Uploaded image", use_container_width=True)
+
+            with coll2:
+                with st.spinner("Analysing …"):
+                    results = predict(image, model, class_names)
+
+                top = results[0]
+                confidence = top["confidence"]
+
+                # Colour-code confidence
+                if confidence >= 0.90:
+                    badge = "🟢"
+                elif confidence >= 0.70:
+                    badge = "🟡"
+                else:
+                    badge = "🔴"
+                
+                
                 st.subheader("Top Prediction")
                 st.markdown(f"**🌱 Plant** : {top['plant']}")
                 st.markdown(f"**🦠 Condition** : {top['disease']}")
