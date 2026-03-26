@@ -1,0 +1,10 @@
+streamlit
+google-genai
+google-generativeai
+Pillow
+numpy
+tensorflow-cpu
+pdfplumber
+pandas
+requests
+python-dotenv
