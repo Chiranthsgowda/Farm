@@ -10,6 +10,7 @@ import requests
 import pandas as pd
 from dotenv import load_dotenv
 import os
+import time
 
 
 load_dotenv()
@@ -133,24 +134,24 @@ st.markdown('<div class="top-nav">', unsafe_allow_html=True)
 
 c1, c2, c3, c4, c5 = st.columns(5)
 
-if c1.button("🥦 Veg Grader"):
-    st.session_state.page = "🥦 Vegetable Grader"
+if c1.button("📊 Report Analyzer"):
+    st.session_state.page = "📊 Report Analyzer"
     st.rerun()
 
 if c2.button("🍃 Leaf Disease"):
     st.session_state.page = "🍃 Leaf Disease"
     st.rerun()
 
-if c3.button("📊 Report"):
-    st.session_state.page = "📊 Report Analyzer"
+if c3.button("🥦 Vegetable Grader"):
+    st.session_state.page = "🥦 Vegetable Grader"
     st.rerun()
 
-if c4.button("🏛️ Schemes"):
-    st.session_state.page = "🏛️ Govt Schemes"
-    st.rerun()
-
-if c5.button("📈 Market"):
+if c4.button("📈 Crop Market"):
     st.session_state.page = "📈 Crop Market"
+    st.rerun()
+
+if c5.button("🏛️ Govt Schemes"):
+    st.session_state.page = "🏛️ Govt Schemes"
     st.rerun()
 
 st.markdown('</div>', unsafe_allow_html=True)
@@ -261,8 +262,8 @@ elif st.session_state.page == "🥦 Vegetable Grader":
 # ════════════════════════════════════════════════════════════
 elif st.session_state.page == "🍃 Leaf Disease":
 
-    MODEL_PATH     = r"D:\codes\Fram2Future\plantvillage_efficientnet.keras"
-    LABEL_MAP_PATH = r"D:\codes\Fram2Future\class_names.json"
+    MODEL_PATH     = r"C:\Users\Chiranth\Downloads\Farm-main\Farm-main\plantvillage_efficientnet.keras"
+    LABEL_MAP_PATH = r"C:\Users\Chiranth\Downloads\Farm-main\Farm-main\class_names.json"
     IMG_SIZE       = (224, 224)
     TOP_K          = 5
 
@@ -561,7 +562,7 @@ elif st.session_state.page == "🏛️ Govt Schemes":
                 st.error(f"Error fetching schemes from Gemini: {e}")
                 return pd.DataFrame()
 
-        st.title("Block 4 — 🏛️ Govt Schemes")
+        st.title("🏛️ Govt Schemes")
         st.write("Explore and apply for the latest central and state agricultural schemes.")
 
         st.subheader("📍 What are farmers in your region applying for?")
@@ -632,110 +633,119 @@ elif st.session_state.page == "🏛️ Govt Schemes":
 # MARKET
 # ════════════════════════════════════════════════════════════
 elif st.session_state.page == "📈 Crop Market":
+    from datetime import datetime
+    import json
+
     col1, col2 = st.columns(2)
+    API_KEY = os.getenv("GOOGLE_API_KEY")
 
     with col1:
-        @st.cache_data(ttl=3600)
-        def fetch_data():
-            API_KEY = "579b464db66ec23bdd000001c4a38233a7304d9b738796636eb7c787"
-            url = "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"
+        st.title("📈 Crop Market Insights")
+        
+        # Reliable static mapping to populate UI dropdowns without broken APIs
+        INDIAN_AGRI_MAP = {
+            "Karnataka": ["Mysore", "Mandya", "Belgaum", "Davangere", "Shimoga"],
+            "Maharashtra": ["Pune", "Nashik", "Nagpur", "Ahmednagar", "Jalgaon"],
+            "Punjab": ["Ludhiana", "Amritsar", "Jalandhar", "Patiala", "Bathinda"],
+            "Uttar Pradesh": ["Agra", "Kanpur", "Lucknow", "Varanasi", "Aligarh"],
+            "Tamil Nadu": ["Coimbatore", "Madurai", "Salem", "Trichy", "Erode"],
+            "Andhra Pradesh": ["Guntur", "Kurnool", "Anantapur", "Chittoor", "Eluru"]
+        }
+        
+        POPULAR_CROPS = [
+            "Maize", "Rice (Paddy)", "Wheat", "Cotton", "Onion", 
+            "Potato", "Tomato", "Turmeric", "Sugarcane", "Groundnut"
+        ]
 
-            params = {
-                "api-key": API_KEY,
-                "format": "json",
-                "limit": 1000
-            }
-
-            try:
-                response = requests.get(url, params=params)
-                if response.status_code == 200:
-                    data = response.json()
-                    records = data.get("records", [])
-
-                    has_karnataka = any(r.get("state", "").title() == "Karnataka" for r in records)
-                    if not has_karnataka and records:
-                        records.append({
-                            "state": "Karnataka",
-                            "district": "Mysore",
-                            "market": "Demo Market",
-                            "commodity": "Maize",
-                            "arrival_date": "26/03/2026",
-                            "min_price": "1500",
-                            "max_price": "2000",
-                            "modal_price": "1800"
-                        })
-
-                    if records:
-                        return records
-
-            except Exception as e:
-                st.error("API Error: Falling back to demo data.")
-
-            return [{
-                "state": "Karnataka",
-                "district": "Mysore",
-                "market": "Demo Market",
-                "commodity": "Maize",
-                "arrival_date": "26/03/2026",
-                "min_price": "1500",
-                "max_price": "2000",
-                "modal_price": "1800"
-            }]
-
-        records = fetch_data()
-
-        states = sorted(list(set(r["state"].title() for r in records)))
-        state_input = st.selectbox("📍 Select State", states)
-
-        districts = sorted(list(set(r["district"].title() for r in records if r["state"].title() == state_input)))
-        district_input = st.selectbox("🏙️ Select District", districts)
-
-        commodities = sorted(list(set(
-            r["commodity"].title() for r in records
-            if r["state"].title() == state_input and r["district"].title() == district_input
-        )))
-        commodity_input = st.selectbox("🌾 Select Crop", commodities)
+        # Step 1-3: User Form Input
+        state_input = st.selectbox("📍 Select State", list(INDIAN_AGRI_MAP.keys()))
+        district_input = st.selectbox("🏙️ Select District", INDIAN_AGRI_MAP[state_input])
+        commodity_input = st.selectbox("🌾 Select Crop", POPULAR_CROPS)
 
         st.divider()
 
-        filtered_data = [
-            r for r in records
-            if r["state"].title() == state_input
-            and r["district"].title() == district_input
-            and r["commodity"].title() == commodity_input
-        ]
+        # --- The Master Prompt for Market Analysis ---
+        SYSTEM_PROMPT = f"""
+        You are an expert agricultural market analyst specializing in Indian Mandi prices and commodity variations (like AGMARKNET data).
+        Your task is to estimate realistic, seasonally accurate market price ranges and insights for the given state, district, and crop for the year 2026.
 
-        if filtered_data:
-            record = filtered_data[0]
+        Target Inputs:
+        - State: {state_input}
+        - District: {district_input}
+        - Crop: {commodity_input}
 
-            min_price   = float(record["min_price"])
-            max_price   = float(record["max_price"])
-            modal_price = float(record["modal_price"])
-            date        = record["arrival_date"]
-            price_per_kg = modal_price / 100
+        Analyze the regional historical trends, typical seasonal arrivals for this period, and output your findings STRICTLY as a JSON object with the following exact keys. Do not include markdown formatting (like ```json), conversational text, or explanations outside of the JSON object.
 
-            st.markdown(f"**📍 Location:** {district_input}, {state_input} | **📅 Date:** {date}")
-            st.markdown(f"**🌾 Crop:** {commodity_input}")
+        {{
+        "market_name": "Name of a major real market mandi in this district",
+        "arrival_date": "DD/MM/2026 (a realistic current date)",
+        "min_price": 0,
+        "max_price": 0,
+        "modal_price": 0,
+        "trend": "Low Price, High Price, or Moderate",
+        "suggestion": "Actionable advice for the farmer on whether to sell immediately or store the produce."
+        }}
+        """
 
-            st.subheader("📊 Market Prices (₹/quintal)")
-            price_col1, price_col2, price_col3 = st.columns(3)
-            price_col1.metric("Min Price", f"₹{min_price:,.0f}")
-            price_col2.metric("Modal Price", f"₹{modal_price:,.0f}")
-            price_col3.metric("Max Price", f"₹{max_price:,.0f}")
-
-            st.markdown(f"### 📦 ≈ ₹{price_per_kg:.2f} per kg")
-            st.write("")
-
-            st.subheader("💡 Market Insights")
-            if modal_price < 2000:
-                st.error("**📉 Market Trend: Low Price ⚠️**\n\n**Suggestion:** Consider delaying sale if storage is available.")
-            elif modal_price > 4000:
-                st.success("**📈 Market Trend: High Price 🚀**\n\n**Suggestion:** Good time to sell and lock in profits.")
+        if st.button("Fetch Market Insights", type="primary"):
+            if not API_KEY or API_KEY == "YOUR_API_KEY_HERE":
+                st.error("Please add your Gemini API Key to the GOOGLE_API_KEY environment variable.")
             else:
-                st.info("**📊 Market Trend: Moderate 👍**\n\n**Suggestion:** Monitor market conditions closely.")
+                with st.spinner("Analyzing market conditions..."):
+                    try:
+                        client = genai.Client(api_key=API_KEY)
+                        response = client.models.generate_content(
+                            model='gemini-2.5-flash',
+                            contents=[SYSTEM_PROMPT]
+                        )
 
-        else:
-            st.warning("⚠️ No data found for the selected combination.")
+                        response_text = response.text.strip()
+                        if response_text.startswith("```json"):
+                            response_text = response_text[7:]
+                        if response_text.endswith("```"):
+                            response_text = response_text[:-3]
+
+                        result = json.loads(response_text.strip())
+
+                        # Parse extracted metrics
+                        min_price   = float(result.get("min_price", 0))
+                        max_price   = float(result.get("max_price", 0))
+                        modal_price = float(result.get("modal_price", 0))
+                        date        = result.get("arrival_date", "N/A")
+                        market_name = result.get("market_name", "Local Mandi")
+                        price_per_kg = modal_price / 100
+
+                        # Render Results
+                        st.success("Market Data Estimated Successfully!")
+                        st.markdown(f"**📍 Location:** {district_input}, {state_input} | **🏪 Mandi:** {market_name}")
+                        st.markdown(f"**📅 Date:** {date} | **🌾 Crop:** {commodity_input}")
+
+                        st.subheader("📊 Market Prices (₹/quintal)")
+                        price_col1, price_col2, price_col3 = st.columns(3)
+                        price_col1.metric("Min Price", f"₹{min_price:,.0f}")
+                        price_col2.metric("Modal Price", f"₹{modal_price:,.0f}")
+                        price_col3.metric("Max Price", f"₹{max_price:,.0f}")
+
+                        st.markdown(f"### 📦 ≈ ₹{price_per_kg:.2f} per kg")
+                        st.write("")
+
+                        st.subheader("💡 Market Insights")
+                        trend = result.get("trend", "Moderate")
+                        suggestion = result.get("suggestion", "Monitor market conditions closely.")
+
+                        if trend == "Low Price":
+                            st.error(f"**📉 Market Trend: Low Price ⚠️**\n\n**Suggestion:** {suggestion}")
+                        elif trend == "High Price":
+                            st.success(f"**📈 Market Trend: High Price 🚀**\n\n**Suggestion:** {suggestion}")
+                        else:
+                            st.info(f"**📊 Market Trend: Moderate 👍**\n\n**Suggestion:** {suggestion}")
+
+                    except json.JSONDecodeError:
+                        st.error("The AI returned a response that couldn't be parsed correctly. Please try again.")
+                        with st.expander("Show raw AI response"):
+                            st.write(response.text)
+                    except Exception as e:
+                        st.error(f"An error occurred: {e}")
 
     with col2:
         st.image("https://images.unsplash.com/photo-1500382017468-9049fed747ef", use_container_width=True)
